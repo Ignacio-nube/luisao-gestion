@@ -6,14 +6,15 @@ if errorlevel 1 (
   echo  Falta Node.js. Instalalo desde https://nodejs.org ^(version 22 o superior^) y volve a abrir este archivo.
   exit /b 1
 )
+rem El .env va primero: la instalacion genera el cliente de Prisma y necesita DATABASE_URL.
+echo [1/4] Configuracion
+node scripts\crear-env.mjs || exit /b 1
 if not exist node_modules (
-  echo [1/4] Instalando dependencias, la primera vez tarda unos minutos...
+  echo [2/4] Instalando dependencias, la primera vez tarda unos minutos...
   call npm install --no-fund --no-audit || exit /b 1
 ) else (
-  echo [1/4] Dependencias OK
+  echo [2/4] Dependencias OK
 )
-echo [2/4] Configuracion
-node scripts\crear-env.mjs || exit /b 1
 if not exist server\generated (
   call npx prisma generate || exit /b 1
 )
