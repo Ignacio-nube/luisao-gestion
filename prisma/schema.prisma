@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../server/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  description String       @default("")
+  isSystem    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  permissions Permission[]
+  users       User[]
+}
+
+model Permission {
+  id        Int     @id @default(autoincrement())
+  roleId    Int
+  module    String
+  canView   Boolean @default(false)
+  canCreate Boolean @default(false)
+  canEdit   Boolean @default(false)
+  canDelete Boolean @default(false)
+  role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, module])
+}
+
+model User {
+  id                 Int             @id @default(autoincrement())
+  name               String
+  username           String          @unique
+  passwordHash       String
+  active             Boolean         @default(true)
+  mustChangePassword Boolean         @default(false)
+  sessionVersion     Int             @default(0)
+  roleId             Int
+  createdAt          DateTime        @default(now())
+  lastLoginAt        DateTime?
+  role               Role            @relation(fields: [roleId], references: [id])
+  sales              Sale[]
+  movements          StockMovement[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  sku         String    @unique
+  description String    @default("")
+  price       Int
+  cost        Int       @default(0)
+  active      Boolean   @default(true)
+  categoryId  Int?
+  createdAt   DateTime  @default(now())
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  variants    Variant[]
+}
+
+model Variant {
+  id        Int             @id @default(autoincrement())
+  productId Int
+  size      String
+  color     String
+  sku       String          @unique
+  stock     Int             @default(0)
+  minStock  Int             @default(2)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  saleItems SaleItem[]
+  movements StockMovement[]
+}
+
+/// type: ENTRADA | SALIDA | AJUSTE | VENTA | ANULACION
+model StockMovement {
+  id        Int      @id @default(autoincrement())
+  variantId Int
+  type      String
+  qty       Int
+  reason    String   @default("")
+  userId    Int
+  createdAt DateTime @default(now())
+  variant   Variant  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+/// paymentMethod: EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | MERCADOPAGO
+/// status: COMPLETADA | ANULADA
+model Sale {
+  id            Int        @id @default(autoincrement())
+  userId        Int
+  subtotal      Int
+  discount      Int        @default(0)
+  total         Int
+  paymentMethod String
+  status        String     @default("COMPLETADA")
+  createdAt     DateTime   @default(now())
+  user          User       @relation(fields: [userId], references: [id])
+  items         SaleItem[]
+}
+
+model SaleItem {
+  id        Int     @id @default(autoincrement())
+  saleId    Int
+  variantId Int
+  qty       Int
+  unitPrice Int
+  subtotal  Int
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  variant   Variant @relation(fields: [variantId], references: [id])
+}
